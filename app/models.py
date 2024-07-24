@@ -4,7 +4,7 @@ from app.database import engine
 
 
 class Video(Base):
-    __tablename__ = 'videos'
+    __tablename__ = "videos"
 
     id = Column(Integer, primary_key=True, index=True)
     channel_id = Column(String, index=True)

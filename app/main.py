@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import os  # Импортируем модуль os
+import os
 from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv
 from app.database import init_db
@@ -23,5 +23,5 @@ async def main():
     await dp.start_polling(bot)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())
