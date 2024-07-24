@@ -4,9 +4,9 @@ services:
   app:
     build: .
     environment:
-      BOT_TOKEN: ${BOT_TOKEN}
-      DATABASE_URL: ${DATABASE_URL}
+      - BOT_TOKEN=${BOT_TOKEN}
+      - DATABASE_URL=${DATABASE_URL}
     volumes:
       - .:/app
     working_dir: /app
-    command: ["python", "app/main.py"]
+    command: ["sh", "-c", "alembic upgrade head && python app/main.py"]
