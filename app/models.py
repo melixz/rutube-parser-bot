@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text
-from app.database import Base
-from app.database import engine
+from sqlalchemy.ext.declarative import declarative_base
+
+Base = declarative_base()
 
 
 class Video(Base):
@@ -12,8 +13,3 @@ class Video(Base):
     description = Column(Text)
     views = Column(Integer)
     url = Column(String)
-
-
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)

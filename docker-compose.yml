@@ -1,22 +1,12 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  db:
-    image: postgres:13
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: rutube_parser_db
-    ports:
-      - "5432:5432"
-
   app:
     build: .
     environment:
-      BOT_TOKEN: your_bot_token
-      DATABASE_URL: postgresql+asyncpg://user:password@db/rutube_parser_db
-    depends_on:
-      - db
+      BOT_TOKEN: ${BOT_TOKEN}
+      DATABASE_URL: ${DATABASE_URL}
     volumes:
       - .:/app
+    working_dir: /app
     command: ["python", "app/main.py"]

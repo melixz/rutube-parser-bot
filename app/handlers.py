@@ -3,7 +3,6 @@ from aiogram import Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery
 from app.services.parsing_service import ParsingService
-from app.database import get_db
 from app.repository import VideoRepository
 from app.keyboards import get_video_keyboard
 
@@ -14,27 +13,30 @@ async def start_handler(message: types.Message):
     )
 
 
-async def parse_handler(message: types.Message):
+async def parse_handler(message: types.Message, data: dict):
     try:
         logging.info(f"Получено сообщение: {message.text}")
-        _, channel_url, video_count = message.text.split()
+        parts = message.text.split()
+        if len(parts) != 3:
+            raise ValueError("Неверный формат команды")
+        _, channel_url, video_count = parts
         video_count = int(video_count)
         logging.info(f"Парсинг канала: {channel_url} для {video_count} видео")
 
         videos = await ParsingService.fetch_videos(channel_url, video_count)
-        async for db in get_db():
-            for video in videos:
-                video["channel_id"] = channel_url
-                saved_video = await VideoRepository.add_video(db, video)
-                await message.reply(
-                    f"Сохранено видео: {saved_video.title}",
-                    reply_markup=get_video_keyboard(saved_video.id),
-                )
+        db = data["db"]
+        for video in videos:
+            video["channel_id"] = channel_url
+            saved_video = await VideoRepository.add_video(db, video)
+            await message.reply(
+                f"Сохранено видео: {saved_video.title}",
+                reply_markup=get_video_keyboard(saved_video.id),
+            )
 
         await message.reply("Видео успешно сохранены!")
-    except ValueError:
-        logging.error("Количество видео должно быть числом.")
-        await message.reply("Ошибка: Количество видео должно быть числом.")
+    except ValueError as ve:
+        logging.error(f"Ошибка: {ve}")
+        await message.reply(f"Ошибка: {ve}")
     except Exception as e:
         logging.error(f"Ошибка при обработке команды: {e}")
         await message.reply(
@@ -42,21 +44,27 @@ async def parse_handler(message: types.Message):
         )
 
 
-async def list_videos_handler(message: types.Message):
+async def list_videos_handler(message: types.Message, data: dict):
     try:
         logging.info(f"Получено сообщение: {message.text}")
-        _, channel_url = message.text.split()
+        parts = message.text.split()
+        if len(parts) != 2:
+            raise ValueError("Неверный формат команды")
+        _, channel_url = parts
         logging.info(f"Получение списка видео для канала: {channel_url}")
 
-        async for db in get_db():
-            videos = await VideoRepository.get_videos_by_channel(db, channel_url)
-            if videos:
-                for video in videos:
-                    await message.reply(
-                        f"Название: {video.title}\nОписание: {video.description}\nПросмотры: {video.views}\nСсылка: {video.url}"
-                    )
-            else:
-                await message.reply("Видео не найдены для указанного канала.")
+        db = data["db"]
+        videos = await VideoRepository.get_videos_by_channel(db, channel_url)
+        if videos:
+            for video in videos:
+                await message.reply(
+                    f"Название: {video.title}\nОписание: {video.description}\nПросмотры: {video.views}\nСсылка: {video.url}"
+                )
+        else:
+            await message.reply("Видео не найдены для указанного канала.")
+    except ValueError as ve:
+        logging.error(f"Ошибка: {ve}")
+        await message.reply(f"Ошибка: {ve}")
     except Exception as e:
         logging.error(f"Ошибка при обработке команды: {e}")
         await message.reply(
@@ -64,16 +72,16 @@ async def list_videos_handler(message: types.Message):
         )
 
 
-async def video_details_handler(callback_query: CallbackQuery):
+async def video_details_handler(callback_query: CallbackQuery, data: dict):
     video_id = callback_query.data.split("_")[1]
-    async for db in get_db():
-        video = await VideoRepository.get_video_by_id(db, video_id)
-        if video:
-            await callback_query.message.reply(
-                f"Название: {video.title}\nОписание: {video.description}\nПросмотры: {video.views}\nСсылка: {video.url}"
-            )
-        else:
-            await callback_query.message.reply("Видео не найдено.")
+    db = data["db"]
+    video = await VideoRepository.get_video_by_id(db, video_id)
+    if video:
+        await callback_query.message.reply(
+            f"Название: {video.title}\nОписание: {video.description}\nПросмотры: {video.views}\nСсылка: {video.url}"
+        )
+    else:
+        await callback_query.message.reply("Видео не найдено.")
 
 
 def register_handlers(dp: Dispatcher):
