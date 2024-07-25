@@ -13,7 +13,7 @@ class SavingService:
                 title=video_data["title"],
                 description=video_data["description"],
                 views=video_data["views"],
-                url=video_data["video_url"],
-                channel_id=video_data["channel_name"],
+                video_url=video_data["video_url"],
+                channel_name=video_data["channel_name"],
             )
             await self.video_repo.add_video(db, video)

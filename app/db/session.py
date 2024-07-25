@@ -6,7 +6,6 @@ from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 DATABASE_URL = config.DATABASE_URL
 
 
-# Удаляем sslmode из URL базы данных
 def remove_sslmode(url):
     url_parts = list(urlsplit(url))
     query = dict(parse_qsl(url_parts[3]))

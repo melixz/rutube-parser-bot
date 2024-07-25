@@ -1,17 +1,17 @@
 import httpx
 from bs4 import BeautifulSoup
 
-MAX_DESCRIPTION: int = 97
+MAX_DESCRIPTION: int = 100
 
 
 class ParserService:
     @staticmethod
     async def parse_channel(channel_url: str, video_count: int):
-        async with httpx.AsyncClient() as client:
+        if not channel_url.startswith(("http://", "https://")):
+            channel_url = "http://" + channel_url
+
+        async with httpx.AsyncClient(follow_redirects=True) as client:
             chanal_response = await client.get(channel_url)
-            if chanal_response.status_code == 301:
-                redirected_url = chanal_response.headers["Location"]
-                chanal_response = await client.get(redirected_url)
             if chanal_response.status_code != 200:
                 raise Exception(
                     "Ошибка получения данных с канала. "
@@ -32,24 +32,20 @@ class ParserService:
                 video_description = (
                     video_soup.find(
                         "div",
-                        class_=(
-                            "freyja_pen-videopage-description" "__description_x8Lqk"
-                        ),
+                        class_=("freyja_pen-videopage-description__description_x8Lqk"),
                     ).text.strip()[:MAX_DESCRIPTION]
                     + "..."
                 )
                 video_views = video_soup.find(
                     "div",
                     class_=(
-                        "wdp-video-options-row-module"
-                        "__wdpVideoOptionsRow__views-count"
+                        "wdp-video-options-row-module__wdpVideoOptionsRow__views-count"
                     ),
                 ).text.strip()
                 channel_name = video_soup.find(
                     "span",
                     class_=(
-                        "freyja_pen-author-options-row"
-                        "__pen-author-options-row__author-title_NEF8H"
+                        "freyja_pen-author-options-row__pen-author-options-row__author-title_NEF8H"
                     ),
                 ).text.strip()
                 videos.append(
