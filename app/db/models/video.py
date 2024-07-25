@@ -1,17 +1,15 @@
-from sqlalchemy import Integer, String, Column
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
 
-
-class Base(DeclarativeBase):
-    pass
+Base = declarative_base()
 
 
 class Video(Base):
     __tablename__ = "videos"
 
-    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     description = Column(String)
     views = Column(String)
-    video_url = Column(String)  # новое поле
+    video_url = Column(String)
     channel_name = Column(String)

@@ -1,28 +1,51 @@
 import asyncio
 import logging
 from aiogram import Bot, Dispatcher
-from dotenv import load_dotenv
-import os
-
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.enums import ParseMode
+from aiogram.types import BotCommand
+from aiogram.fsm.storage.memory import MemoryStorage
+from app.middlewares import DatabaseMiddleware
 from app.handlers import register_handlers
-from app.db.session import init_db
-
-logging.basicConfig(level=logging.INFO)
+from app.db.session import SessionLocal
+from app.config import config  # Импортируем config
+from aiogram.client.default import (
+    DefaultBotProperties,
+)  # Импортируем DefaultBotProperties
 
 
 async def main():
-    load_dotenv()
+    logging.basicConfig(level=logging.INFO)
 
-    BOT_TOKEN = os.getenv("BOT_TOKEN")
+    if config.BOT_TOKEN is None:
+        raise ValueError("No BOT_TOKEN provided")
 
-    bot = Bot(token=BOT_TOKEN)
-    dp = Dispatcher()
+    session = AiohttpSession()
+    bot = Bot(
+        token=config.BOT_TOKEN,
+        session=session,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
+    storage = MemoryStorage()
+    dp = Dispatcher(storage=storage)
+
+    # Регистрация middleware для сессий базы данных
+    dp.update.outer_middleware(DatabaseMiddleware(SessionLocal))
 
     register_handlers(dp)
 
-    await init_db()
+    await bot.set_my_commands(
+        [
+            BotCommand(command="/start", description="Запуск бота"),
+            BotCommand(command="/parse", description="Парсинг видео"),
+            BotCommand(command="/list", description="Список видео"),
+        ]
+    )
 
-    await dp.start_polling(bot)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await bot.session.close()
 
 
 if __name__ == "__main__":
