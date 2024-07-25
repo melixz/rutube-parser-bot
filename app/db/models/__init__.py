@@ -1,6 +1,5 @@
-def main():
-    pass
+from app.db.models.base import Base
+from app.db.models.user import User
+from app.db.models.video import Video
 
-
-if __name__ == "__main__":
-    main()
+__all__ = ["Base", "User", "Video"]
