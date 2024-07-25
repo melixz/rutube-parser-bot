@@ -4,20 +4,19 @@ from app.db.models.video import Video
 
 
 class VideoRepository:
-    async def add_video(self, db: AsyncSession, video: Video):
-        db.add(video)
-        await db.commit()
-        await db.refresh(video)
-        return video
+    async def get_video_by_id(self, db: AsyncSession, video_id: int):
+        result = await db.execute(select(Video).where(Video.id == video_id))
+        return result.scalar_one_or_none()
 
     async def get_videos_by_channel(self, db: AsyncSession, channel_name: str):
         result = await db.execute(
-            select(Video).filter(Video.channel_name == channel_name)
+            select(Video).where(Video.channel_name == channel_name)
         )
         return result.scalars().all()
 
-    async def get_video_by_id(self, db: AsyncSession, video_id: str):
-        result = await db.execute(
-            select(Video).filter(Video.video_url.like(f"%{video_id}%"))
-        )
-        return result.scalar_one_or_none()
+    async def add_video(self, db: AsyncSession, video_data: dict):
+        new_video = Video(**video_data)
+        db.add(new_video)
+        await db.commit()
+        await db.refresh(new_video)
+        return new_video
