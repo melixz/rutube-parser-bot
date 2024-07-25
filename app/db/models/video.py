@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy import Column, Integer, String, Text, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -11,5 +11,7 @@ class Video(Base):
     title = Column(String, index=True)
     description = Column(Text)
     views = Column(String)
-    video_url = Column(String)
+    video_url = Column(String, unique=True)
     channel_name = Column(String)
+
+    __table_args__ = (UniqueConstraint("video_url", name="uq_video_url"),)

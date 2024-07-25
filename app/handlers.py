@@ -61,16 +61,33 @@ async def parse_video_count(
 
     try:
         videos = await ParserService.parse_channel(channel_url, video_count)
-        await saving_service.save_videos(db, videos)
-
+        saved_videos = []
         for video in videos:
-            await message.reply(
-                f"Сохранено видео: <b>{video['title']}</b>",
-                reply_markup=get_video_keyboard(video["video_url"]),
+            video_exists = await video_repo.get_video_by_url(db, video["video_url"])
+            if video_exists:
+                logging.info(
+                    f"Видео с URL {video['video_url']} уже существует в базе данных."
+                )
+                await message.reply(
+                    f"Видео с URL {video['video_url']} уже существует в базе данных."
+                )
+            else:
+                await saving_service.save_video(db, video)
+                saved_videos.append(video)
+                logging.info(f"Сохранено видео: {video['title']}")
+                await message.reply(
+                    f"Сохранено видео: <b>{video['title']}</b>",
+                    reply_markup=get_video_keyboard(video["video_url"]),
+                    parse_mode="HTML",
+                )
+
+        if saved_videos:
+            await message.answer("Видео успешно сохранены!", parse_mode="HTML")
+        else:
+            await message.answer(
+                "Ни одно из видео не было сохранено, так как все они уже существуют в базе данных.",
                 parse_mode="HTML",
             )
-
-        await message.answer("Видео успешно сохранены!", parse_mode="HTML")
     except Exception as e:
         logging.error(f"Ошибка при парсинге: {e}")
         error_message = f"Ошибка при парсинге: {str(e)}"

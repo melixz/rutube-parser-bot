@@ -20,3 +20,7 @@ class VideoRepository:
         await db.commit()
         await db.refresh(new_video)
         return new_video
+
+    async def get_video_by_url(self, db: AsyncSession, video_url: str):
+        result = await db.execute(select(Video).where(Video.video_url == video_url))
+        return result.scalar_one_or_none()
