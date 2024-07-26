@@ -7,6 +7,7 @@ from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 # Import your app config to get the DATABASE_URL
 from app.config import config as app_config
 
+
 # Remove sslmode from DATABASE_URL
 def remove_sslmode(url):
     url_parts = list(urlsplit(url))
@@ -14,6 +15,7 @@ def remove_sslmode(url):
     query.pop("sslmode", None)
     url_parts[3] = urlencode(query)
     return urlunsplit(url_parts)
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -33,6 +35,7 @@ from app.db.models import Base
 # add your model's MetaData object here
 target_metadata = Base.metadata
 
+
 def run_migrations_offline():
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
@@ -45,10 +48,12 @@ def run_migrations_offline():
     with context.begin_transaction():
         context.run_migrations()
 
+
 def do_run_migrations(connection):
     context.configure(connection=connection, target_metadata=target_metadata)
     with context.begin_transaction():
         context.run_migrations()
+
 
 async def run_migrations_online():
     connectable = create_async_engine(
@@ -60,8 +65,10 @@ async def run_migrations_online():
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
 
+
 if context.is_offline_mode():
     run_migrations_offline()
 else:
     import asyncio
+
     asyncio.run(run_migrations_online())

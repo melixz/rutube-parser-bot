@@ -7,10 +7,14 @@ from aiogram.fsm.state import StatesGroup, State
 from app.services.parsing_service import ParserService
 from app.services.db_saving_service import SavingService
 from app.repositories.video_repository import VideoRepository
+from app.repositories.user_repository import UserRepository
 from app.keyboards import get_video_keyboard, get_channel_keyboard
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.db.models.user import User
+import re
 
 video_repo = VideoRepository()
+user_repo = UserRepository()
 saving_service = SavingService(video_repo)
 
 
@@ -23,8 +27,24 @@ class ListStates(StatesGroup):
     waiting_for_channel_name = State()
 
 
-async def start_handler(message: types.Message):
+class InitStates(StatesGroup):
+    initialized = State()
+
+
+async def start_handler(message: types.Message, state: FSMContext, db: AsyncSession):
     logging.info("Запуск бота")
+    telegram_user_id = message.from_user.id
+
+    user = await user_repo.get_user_by_telegram_id(db, telegram_user_id)
+
+    if not user:
+        new_user = User(telegram_user_id=telegram_user_id)
+        db.add(new_user)
+        await db.commit()
+        await db.refresh(new_user)
+        user = new_user
+
+    await state.set_state(InitStates.initialized)
     await message.reply(
         "Привет! Вставьте ссылку на канал RUTUBE и укажите количество видео для парсинга.\n"
         "Примеры команд:\n"
@@ -34,6 +54,11 @@ async def start_handler(message: types.Message):
 
 
 async def parse_start(message: types.Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state != InitStates.initialized.state:
+        await message.answer("Пожалуйста, сначала используйте команду /start.")
+        return
+
     logging.info("Начало парсинга")
     await message.answer("Введите URL канала:")
     await state.set_state(ParseStates.waiting_for_channel_url)
@@ -46,12 +71,22 @@ async def parse_channel_url(message: types.Message, state: FSMContext):
     await state.set_state(ParseStates.waiting_for_video_count)
 
 
+def parse_views(views_str):
+    cleaned_str = re.sub(r"[^0-9,]", "", views_str)
+    cleaned_str = cleaned_str.replace(",", ".")
+    views_float = float(cleaned_str)
+    views_int = int(views_float * 1000000) if "млн" in views_str else int(views_float)
+    return views_int
+
+
 async def parse_video_count(
     message: types.Message, state: FSMContext, db: AsyncSession
 ):
     data = await state.get_data()
     channel_url = data["channel_url"]
     video_count = int(message.text)
+    telegram_user_id = message.from_user.id
+
     logging.info(f"Парсинг канала: {channel_url} для {video_count} видео")
 
     if not channel_url.startswith(("http://", "https://")):
@@ -61,6 +96,19 @@ async def parse_video_count(
 
     try:
         videos = await ParserService.parse_channel(channel_url, video_count)
+
+        if not videos:
+            await message.reply("На канале больше нет видео для парсинга.")
+            await state.clear()
+            return
+
+        if len(videos) < video_count:
+            await message.reply(
+                f"На канале недостаточно видео. Найдено только {len(videos)} видео(ов)."
+            )
+            await state.clear()
+            return
+
         saved_videos = []
         for video in videos:
             video_exists = await video_repo.get_video_by_url(db, video["video_url"])
@@ -72,30 +120,46 @@ async def parse_video_count(
                     f"Видео с URL {video['video_url']} уже существует в базе данных."
                 )
             else:
-                await saving_service.save_video(db, video)
+                user = await user_repo.get_user_by_telegram_id(db, telegram_user_id)
+                if not user:
+                    new_user = User(telegram_user_id=telegram_user_id)
+                    db.add(new_user)
+                    await db.commit()
+                    await db.refresh(new_user)
+                    user = new_user
+
+                video["views"] = parse_views(video["views"])
+
+                await saving_service.save_videos(db, [video], user.id)
                 saved_videos.append(video)
                 logging.info(f"Сохранено видео: {video['title']}")
                 await message.reply(
-                    f"Сохранено видео: <b>{video['title']}</b>",
+                    f"Сохранено видео: {video['title']}",
                     reply_markup=get_video_keyboard(video["video_url"]),
                     parse_mode="HTML",
                 )
 
         if saved_videos:
-            await message.answer("Видео успешно сохранены!", parse_mode="HTML")
+            await message.answer("Видео успешно сохранены!")
         else:
             await message.answer(
-                "Ни одно из видео не было сохранено, так как все они уже существуют в базе данных.",
-                parse_mode="HTML",
+                "Ни одно из видео не было сохранено, так как все они уже существуют в базе данных."
             )
     except Exception as e:
         logging.error(f"Ошибка при парсинге: {e}")
-        error_message = f"Ошибка при парсинге: {str(e)}"
-        await message.reply(error_message, parse_mode="HTML")
+        error_message = (
+            f"Ошибка при парсинге: {str(e).replace('<', '').replace('>', '')}"
+        )
+        await message.reply(error_message)
     await state.clear()
 
 
 async def list_start(message: types.Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state != InitStates.initialized.state:
+        await message.answer("Пожалуйста, сначала используйте команду /start.")
+        return
+
     logging.info("Запрос списка видео")
     await message.answer("Введите название канала:")
     await state.set_state(ListStates.waiting_for_channel_name)

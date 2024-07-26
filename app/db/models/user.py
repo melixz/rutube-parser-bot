@@ -12,4 +12,4 @@ class User(Base):
     telegram_user_id: Mapped[int] = mapped_column(
         BigInteger, unique=True, index=True, nullable=False
     )
-    videos: Mapped[list] = relationship("Video", back_populates="user")
+    videos: Mapped[list["Video"]] = relationship("Video", back_populates="user")
