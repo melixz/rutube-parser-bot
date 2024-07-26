@@ -11,7 +11,7 @@ class Video(Base):
     )
     title: Mapped[str] = mapped_column(String, index=True)
     description: Mapped[str] = mapped_column(Text)
-    views: Mapped[int] = mapped_column(Integer)
+    views: Mapped[str] = mapped_column(String)
     video_url: Mapped[str] = mapped_column(String, unique=True)
     channel_name: Mapped[str] = mapped_column(String)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))

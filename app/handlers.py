@@ -11,7 +11,6 @@ from app.repositories.user_repository import UserRepository
 from app.keyboards import get_video_keyboard, get_channel_keyboard
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.user import User
-import re
 
 video_repo = VideoRepository()
 user_repo = UserRepository()
@@ -54,11 +53,6 @@ async def start_handler(message: types.Message, state: FSMContext, db: AsyncSess
 
 
 async def parse_start(message: types.Message, state: FSMContext):
-    current_state = await state.get_state()
-    if current_state != InitStates.initialized.state:
-        await message.answer("Пожалуйста, сначала используйте команду /start.")
-        return
-
     logging.info("Начало парсинга")
     await message.answer("Введите URL канала:")
     await state.set_state(ParseStates.waiting_for_channel_url)
@@ -69,14 +63,6 @@ async def parse_channel_url(message: types.Message, state: FSMContext):
     await state.update_data(channel_url=message.text)
     await message.answer("Введите количество видео для парсинга:")
     await state.set_state(ParseStates.waiting_for_video_count)
-
-
-def parse_views(views_str):
-    cleaned_str = re.sub(r"[^0-9,]", "", views_str)
-    cleaned_str = cleaned_str.replace(",", ".")
-    views_float = float(cleaned_str)
-    views_int = int(views_float * 1000000) if "млн" in views_str else int(views_float)
-    return views_int
 
 
 async def parse_video_count(
@@ -128,13 +114,13 @@ async def parse_video_count(
                     await db.refresh(new_user)
                     user = new_user
 
-                video["views"] = parse_views(video["views"])
-
                 await saving_service.save_videos(db, [video], user.id)
                 saved_videos.append(video)
                 logging.info(f"Сохранено видео: {video['title']}")
                 await message.reply(
-                    f"Сохранено видео: {video['title']}",
+                    f"<b>Сохранено видео:</b> {video['title']}\n"
+                    f"<b>Описание:</b> {video['description']}\n"
+                    f"<b>Просмотры:</b> {video['views']}\n",
                     reply_markup=get_video_keyboard(video["video_url"]),
                     parse_mode="HTML",
                 )
@@ -155,11 +141,6 @@ async def parse_video_count(
 
 
 async def list_start(message: types.Message, state: FSMContext):
-    current_state = await state.get_state()
-    if current_state != InitStates.initialized.state:
-        await message.answer("Пожалуйста, сначала используйте команду /start.")
-        return
-
     logging.info("Запрос списка видео")
     await message.answer("Введите название канала:")
     await state.set_state(ListStates.waiting_for_channel_name)
@@ -189,8 +170,8 @@ async def video_details_handler(callback_query: CallbackQuery, db: AsyncSession)
             await callback_query.message.reply(
                 f"Название: <b>{video.title}</b>\n"
                 f"Описание: <i>{video.description}</i>\n"
-                f"Просмотры: <b>{video.views}</b>\n"
-                f"Ссылка: <a href='{video.video_url}'>Смотреть видео</a>",
+                f"Просмотры: <b>{video.views}</b>\n",
+                reply_markup=get_video_keyboard(video.video_url),
                 parse_mode="HTML",
             )
         else:
@@ -209,6 +190,18 @@ async def video_details_handler(callback_query: CallbackQuery, db: AsyncSession)
         )
 
 
+async def handle_all_messages(
+    message: types.Message, state: FSMContext, db: AsyncSession
+):
+    current_state = await state.get_state()
+    if not current_state or current_state == InitStates.initialized.state:
+        await start_handler(message, state, db)
+    else:
+        await message.answer(
+            "Пожалуйста, используйте команду /start для начала работы с ботом."
+        )
+
+
 def register_handlers(dp: Dispatcher):
     dp.message.register(start_handler, Command(commands=["start"]))
     dp.message.register(parse_start, Command(commands=["parse"]))
@@ -219,3 +212,4 @@ def register_handlers(dp: Dispatcher):
     dp.callback_query.register(
         video_details_handler, lambda c: c.data.startswith("details_")
     )
+    dp.message.register(handle_all_messages)
