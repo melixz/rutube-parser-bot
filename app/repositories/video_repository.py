@@ -4,13 +4,19 @@ from app.db.models.video import Video
 
 
 class VideoRepository:
-    async def get_video_by_id(self, db: AsyncSession, video_id: int):
-        result = await db.execute(select(Video).where(Video.id == video_id))
+    async def get_video_by_id(self, db: AsyncSession, video_id: int, user_id: int):
+        result = await db.execute(
+            select(Video).where(Video.id == video_id, Video.user_id == user_id)
+        )
         return result.scalar_one_or_none()
 
-    async def get_videos_by_channel(self, db: AsyncSession, channel_name: str):
+    async def get_videos_by_channel_and_user(
+        self, db: AsyncSession, channel_name: str, user_id: int
+    ):
         result = await db.execute(
-            select(Video).where(Video.channel_name == channel_name)
+            select(Video).where(
+                Video.channel_name == channel_name, Video.user_id == user_id
+            )
         )
         return result.scalars().all()
 
@@ -25,6 +31,8 @@ class VideoRepository:
         result = await db.execute(select(Video).where(Video.video_url == video_url))
         return result.scalar_one_or_none()
 
-    async def get_unique_channel_names(self, db: AsyncSession):
-        result = await db.execute(select(Video.channel_name).distinct())
+    async def get_unique_channel_names_by_user(self, db: AsyncSession, user_id: int):
+        result = await db.execute(
+            select(Video.channel_name).where(Video.user_id == user_id).distinct()
+        )
         return [row[0] for row in result.all()]
