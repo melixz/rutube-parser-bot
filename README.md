@@ -16,8 +16,8 @@ pip install -r requirements.txt
 
 1. Настройте переменные окружения:
    ```sh
-   export TELEGRAM_TOKEN=ваш_telegram_token
-   export DATABASE_URL=ваш_url_базы_данных
+   export BOT_TOKEN=ваш_telegram_token
+   export DATABASE_URL=postgresql+asyncpg://ваш_url_базы_данных
    ```
 
 2. Запустите Docker контейнер:
