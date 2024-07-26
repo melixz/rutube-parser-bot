@@ -20,3 +20,17 @@ def get_channel_keyboard(videos):
         )
     keyboard = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
     return keyboard
+
+
+def get_channel_names_keyboard(channel_names):
+    inline_keyboard = []
+    for channel_name in channel_names:
+        inline_keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text=channel_name, callback_data=f"channel_{channel_name}"
+                )
+            ]
+        )
+    keyboard = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+    return keyboard

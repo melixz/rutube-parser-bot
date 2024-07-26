@@ -24,3 +24,7 @@ class VideoRepository:
     async def get_video_by_url(self, db: AsyncSession, video_url: str):
         result = await db.execute(select(Video).where(Video.video_url == video_url))
         return result.scalar_one_or_none()
+
+    async def get_unique_channel_names(self, db: AsyncSession):
+        result = await db.execute(select(Video.channel_name).distinct())
+        return [row[0] for row in result.all()]

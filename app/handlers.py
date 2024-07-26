@@ -8,7 +8,11 @@ from app.services.parsing_service import ParserService
 from app.services.db_saving_service import SavingService
 from app.repositories.video_repository import VideoRepository
 from app.repositories.user_repository import UserRepository
-from app.keyboards import get_video_keyboard, get_channel_keyboard
+from app.keyboards import (
+    get_video_keyboard,
+    get_channel_keyboard,
+    get_channel_names_keyboard,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.user import User
 
@@ -140,10 +144,15 @@ async def parse_video_count(
     await state.clear()
 
 
-async def list_start(message: types.Message, state: FSMContext):
+async def list_start(message: types.Message, state: FSMContext, db: AsyncSession):
     logging.info("Запрос списка видео")
-    await message.answer("Введите название канала:")
-    await state.set_state(ListStates.waiting_for_channel_name)
+    channel_names = await video_repo.get_unique_channel_names(db)
+    if channel_names:
+        await message.answer(
+            "Выберите канал:", reply_markup=get_channel_names_keyboard(channel_names)
+        )
+    else:
+        await message.answer("Каналы не найдены.")
 
 
 async def list_channel_name(
@@ -202,6 +211,18 @@ async def handle_all_messages(
         )
 
 
+async def channel_selection_handler(callback_query: CallbackQuery, db: AsyncSession):
+    channel_name = callback_query.data.split("_")[1]
+    logging.info(f"Получение списка видео для канала: {channel_name}")
+    videos = await video_repo.get_videos_by_channel(db, channel_name)
+    if videos:
+        await callback_query.message.answer(
+            "Выберите видео:", reply_markup=get_channel_keyboard(videos)
+        )
+    else:
+        await callback_query.message.answer("Видео не найдены для указанного канала.")
+
+
 def register_handlers(dp: Dispatcher):
     dp.message.register(start_handler, Command(commands=["start"]))
     dp.message.register(parse_start, Command(commands=["parse"]))
@@ -211,5 +232,8 @@ def register_handlers(dp: Dispatcher):
     dp.message.register(list_channel_name, ListStates.waiting_for_channel_name)
     dp.callback_query.register(
         video_details_handler, lambda c: c.data.startswith("details_")
+    )
+    dp.callback_query.register(
+        channel_selection_handler, lambda c: c.data.startswith("channel_")
     )
     dp.message.register(handle_all_messages)
