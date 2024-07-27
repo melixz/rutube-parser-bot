@@ -1,5 +1,15 @@
-def get_channel_name_by_short_id(short_channel_id):
-    channel_mapping = {
-        "3e1d91f6c2d2b4b6": "Байки Страха † Страшные истории на ночь",
-    }
-    return channel_mapping.get(short_channel_id, "Неизвестный канал")
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.repositories.video_repository import VideoRepository
+
+video_repo = VideoRepository()
+
+
+async def get_channel_name_by_short_id(
+    db: AsyncSession, short_channel_id: str, user_id: int
+):
+    videos = await video_repo.get_videos_by_channel_short_id(
+        db, short_channel_id, user_id
+    )
+    if videos:
+        return videos[0].channel_name
+    return "Неизвестный канал"

@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.db.models.video import Video
+import hashlib
 
 
 class VideoRepository:
@@ -36,3 +37,14 @@ class VideoRepository:
             select(Video.channel_name).where(Video.user_id == user_id).distinct()
         )
         return [row[0] for row in result.all()]
+
+    async def get_videos_by_channel_short_id(
+        self, db: AsyncSession, short_channel_id: str, user_id: int
+    ):
+        result = await db.execute(select(Video).where(Video.user_id == user_id))
+        videos = result.scalars().all()
+        for video in videos:
+            hash_object = hashlib.md5(video.channel_name.encode("utf-8"))
+            if hash_object.hexdigest()[:16] == short_channel_id:
+                return [video]
+        return []

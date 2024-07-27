@@ -3,10 +3,17 @@ import logging
 import hashlib
 
 
-def get_video_keyboard(video_url: str):
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="Посмотреть видео", url=video_url)]]
-    )
+def get_video_keyboard(video):
+    if isinstance(video, str):
+        logging.error(f"Expected a video object, but got a string: {video}")
+        return InlineKeyboardMarkup(inline_keyboard=[[]])
+    else:
+        logging.info(f"Creating keyboard for video URL: {video.video_url}")
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Посмотреть видео", url=video.video_url)]
+            ]
+        )
     return keyboard
 
 
