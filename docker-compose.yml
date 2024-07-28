@@ -1,26 +1,47 @@
-version: '3.9'
-
 services:
   app:
     build: .
-    environment:
-      - BOT_TOKEN=${BOT_TOKEN}
-      - DATABASE_URL=${DATABASE_URL}
+    container_name: myapp
+    env_file:
+      - .env
     volumes:
       - .:/app
     working_dir: /app
     depends_on:
       - db
     command: ["sh", "-c", "alembic upgrade head && python app/main.py"]
+    ports:
+      - "8000:8000"
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   db:
     image: postgres:latest
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: mydatabase
+    container_name: mydb
+    env_file:
+      - .env
     volumes:
       - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 volumes:
   pgdata:
+
+networks:
+  mynetwork:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1440
