@@ -1,4 +1,4 @@
-from aiogram import types
+from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.user import User
@@ -6,8 +6,10 @@ from app.repositories.user_repository import UserRepository
 from app.handlers.states import InitStates
 
 user_repo = UserRepository()
+start_router = Router()
 
 
+@start_router.message(commands=["start"])
 async def start_handler(message: types.Message, state: FSMContext, db: AsyncSession):
     telegram_user_id = message.from_user.id
     user = await user_repo.get_user_by_telegram_id(db, telegram_user_id)

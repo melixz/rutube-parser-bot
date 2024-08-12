@@ -1,4 +1,4 @@
-from aiogram import types
+from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.video_repository import VideoRepository
@@ -9,7 +9,10 @@ from app.handlers.states import ListStates
 video_repo = VideoRepository()
 user_repo = UserRepository()
 
+list_router = Router()
 
+
+@list_router.message(commands=["list_start"])
 async def list_start(message: types.Message, state: FSMContext, db: AsyncSession):
     telegram_user_id = message.from_user.id
     user = await user_repo.get_user_by_telegram_id(db, telegram_user_id)
@@ -26,6 +29,7 @@ async def list_start(message: types.Message, state: FSMContext, db: AsyncSession
         await message.answer("Каналы не найдены.")
 
 
+@list_router.message(state=ListStates.waiting_for_channel_name)
 async def list_channel_name(
     message: types.Message, state: FSMContext, db: AsyncSession
 ):

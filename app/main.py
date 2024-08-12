@@ -6,34 +6,12 @@ from aiogram.client.bot import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from app.middlewares import DatabaseMiddleware
-from app.handlers.start import start_handler
-from app.handlers.parse import parse_start, parse_channel_url, parse_video_count
-from app.handlers.list import list_start, list_channel_name
-from app.handlers.video import (
-    video_details_handler,
-    handle_all_messages,
-    channel_selection_handler,
-)
 from app.db.session import SessionLocal
 from app.config import config
-from aiogram.filters import Command
-from handlers.states import ParseStates, ListStates
-
-
-def register_handlers(dp: Dispatcher):
-    dp.message.register(start_handler, Command(commands=["start"]))
-    dp.message.register(parse_start, Command(commands=["parse"]))
-    dp.message.register(list_start, Command(commands=["list"]))
-    dp.message.register(parse_channel_url, ParseStates.waiting_for_channel_url)
-    dp.message.register(parse_video_count, ParseStates.waiting_for_video_count)
-    dp.message.register(list_channel_name, ListStates.waiting_for_channel_name)
-    dp.callback_query.register(
-        video_details_handler, lambda c: c.data.startswith("details_")
-    )
-    dp.callback_query.register(
-        channel_selection_handler, lambda c: c.data.startswith("channel_")
-    )
-    dp.message.register(handle_all_messages)
+from app.handlers.start import start_router
+from app.handlers.parse import parse_router
+from app.handlers.list import list_router
+from app.handlers.video import video_router
 
 
 async def main():
@@ -49,7 +27,10 @@ async def main():
     dp.message.middleware(DatabaseMiddleware(SessionLocal))
     dp.callback_query.middleware(DatabaseMiddleware(SessionLocal))
 
-    register_handlers(dp)
+    dp.include_router(start_router)
+    dp.include_router(parse_router)
+    dp.include_router(list_router)
+    dp.include_router(video_router)
 
     await dp.start_polling(bot)
 

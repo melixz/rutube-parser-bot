@@ -1,4 +1,4 @@
-from aiogram import types
+from aiogram import Router, types
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +13,10 @@ import logging
 video_repo = VideoRepository()
 user_repo = UserRepository()
 
+video_router = Router()
 
+
+@video_router.callback_query(lambda cb: cb.data.startswith("video_"))
 async def video_details_handler(callback_query: CallbackQuery, db: AsyncSession):
     telegram_user_id = callback_query.from_user.id
     user = await user_repo.get_user_by_telegram_id(db, telegram_user_id)
@@ -42,6 +45,7 @@ async def video_details_handler(callback_query: CallbackQuery, db: AsyncSession)
         )
 
 
+@video_router.message(state=InitStates.initialized)
 async def handle_all_messages(
     message: types.Message, state: FSMContext, db: AsyncSession
 ):
@@ -54,6 +58,7 @@ async def handle_all_messages(
         )
 
 
+@video_router.callback_query(lambda cb: cb.data.startswith("channel_"))
 async def channel_selection_handler(callback_query: CallbackQuery, db: AsyncSession):
     telegram_user_id = callback_query.from_user.id
     user = await user_repo.get_user_by_telegram_id(db, telegram_user_id)
