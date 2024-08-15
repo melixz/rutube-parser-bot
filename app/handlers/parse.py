@@ -15,20 +15,20 @@ saving_service = SavingService(video_repo)
 parse_router = Router()
 
 
-@parse_router.message(commands=["parse_start"])
+@parse_router.message(lambda message: message.text.startswith("/parse_start"))
 async def parse_start(message: types.Message, state: FSMContext):
     await message.answer("Введите URL канала:")
     await state.set_state(ParseStates.waiting_for_channel_url)
 
 
-@parse_router.message(state=ParseStates.waiting_for_channel_url)
+@parse_router.message(ParseStates.waiting_for_channel_url)
 async def parse_channel_url(message: types.Message, state: FSMContext):
     await state.update_data(channel_url=message.text)
     await message.answer("Введите количество видео для парсинга:")
     await state.set_state(ParseStates.waiting_for_video_count)
 
 
-@parse_router.message(state=ParseStates.waiting_for_video_count)
+@parse_router.message(ParseStates.waiting_for_video_count)
 async def parse_video_count(
     message: types.Message, state: FSMContext, db: AsyncSession
 ):

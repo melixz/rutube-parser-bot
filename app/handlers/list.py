@@ -12,7 +12,7 @@ user_repo = UserRepository()
 list_router = Router()
 
 
-@list_router.message(commands=["list_start"])
+@list_router.message(lambda message: message.text.startswith("/list_start"))
 async def list_start(message: types.Message, state: FSMContext, db: AsyncSession):
     telegram_user_id = message.from_user.id
     user = await user_repo.get_user_by_telegram_id(db, telegram_user_id)
@@ -29,7 +29,7 @@ async def list_start(message: types.Message, state: FSMContext, db: AsyncSession
         await message.answer("Каналы не найдены.")
 
 
-@list_router.message(state=ListStates.waiting_for_channel_name)
+@list_router.message(ListStates.waiting_for_channel_name)
 async def list_channel_name(
     message: types.Message, state: FSMContext, db: AsyncSession
 ):

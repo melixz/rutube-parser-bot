@@ -9,7 +9,7 @@ user_repo = UserRepository()
 start_router = Router()
 
 
-@start_router.message(commands=["start"])
+@start_router.message(lambda message: message.text.startswith("/start"))
 async def start_handler(message: types.Message, state: FSMContext, db: AsyncSession):
     telegram_user_id = message.from_user.id
     user = await user_repo.get_user_by_telegram_id(db, telegram_user_id)

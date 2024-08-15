@@ -45,7 +45,7 @@ async def video_details_handler(callback_query: CallbackQuery, db: AsyncSession)
         )
 
 
-@video_router.message(state=InitStates.initialized)
+@video_router.message(InitStates.initialized)
 async def handle_all_messages(
     message: types.Message, state: FSMContext, db: AsyncSession
 ):
