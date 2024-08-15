@@ -14,11 +14,8 @@ services:
       - "8000:8000"
     networks:
       - mynetwork
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
 
   db:
     image: postgres:latest
@@ -31,11 +28,10 @@ services:
       - "5432:5432"
     networks:
       - mynetwork
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
 
 volumes:
   pgdata:
@@ -43,5 +39,3 @@ volumes:
 networks:
   mynetwork:
     driver: bridge
-    driver_opts:
-      com.docker.network.driver.mtu: 1440

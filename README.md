@@ -15,12 +15,14 @@ pip install -r requirements.txt
 ## Использование
 
 1. Настройте переменные окружения:
+
    ```sh
    export BOT_TOKEN=ваш_telegram_token
    export DATABASE_URL=postgresql+asyncpg://ваш_url_базы_данных
    ```
 
 2. Запустите Docker контейнер:
+
    ```sh
    docker-compose up --build
    ```
@@ -47,9 +49,9 @@ pip install -r requirements.txt
 
 ## Команды
 
-- `/start` (Запуск бота)
-- `/parse` (Парсинг видео)
-- `/list` (Список видео)
+- `/start` - Запуск бота
+- `/parse` - Парсинг видео
+- `/list` - Список видео
 
 ## Цель проекта
 
