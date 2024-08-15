@@ -21,6 +21,7 @@ async def start_handler(message: types.Message, state: FSMContext, db: AsyncSess
         await db.refresh(new_user)
         user = new_user
 
+    await state.clear()
     await state.set_state(InitStates.initialized)
     await message.reply(
         "Привет! Вставьте ссылку на канал RUTUBE и укажите количество видео для парсинга.\n"
@@ -28,3 +29,22 @@ async def start_handler(message: types.Message, state: FSMContext, db: AsyncSess
         "/parse - Начать парсинг видео\n"
         "/list - Получить список видео"
     )
+
+
+@start_router.message()
+async def handle_all_messages(
+    message: types.Message, state: FSMContext, db: AsyncSession
+):
+    current_state = await state.get_state()
+
+    if current_state != InitStates.initialized.state:
+        reminded = await state.get_data()
+        if not reminded.get("reminded"):
+            await message.answer(
+                "Пожалуйста, используйте команду /start для начала работы с ботом."
+            )
+            await state.update_data(reminded=True)
+        else:
+            await start_handler(message, state, db)
+    else:
+        await start_handler(message, state, db)
